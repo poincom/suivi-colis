@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Suivi de Votre Commande</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f8f9fa;
+      color: #333;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    header {
+      background-color: #4a6fa5;
+      color: white;
+      padding: 20px 0;
+      text-align: center;
+      border-radius: 8px 8px 0 0;
+      margin-bottom: 30px;
+    }
+    .tracking-form {
+      background-color: white;
+      padding: 25px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      margin-bottom: 30px;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+    input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 16px;
+    }
+    button {
+      background-color: #4a6fa5;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      width: 100%;
+    }
+    button:hover {
+      background-color: #3a5a80;
+    }
+    .tracking-results {
+      background-color: white;
+      padding: 25px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      display: none;
+    }
+    .tracking-status {
+      font-size: 18px;
+      margin-bottom: 20px;
+      padding: 15px;
+      background-color: #e8f4ff;
+      border-radius: 4px;
+      border-left: 5px solid #4a6fa5;
+    }
+    .tracking-timeline {
+      position: relative;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .tracking-timeline::after {
+      content: '';
+      position: absolute;
+      width: 6px;
+      background-color: #4a6fa5;
+      top: 0;
+      bottom: 0;
+      left: 18px;
+      margin-left: -3px;
+    }
+    .timeline-item {
+      padding: 10px 40px;
+      position: relative;
+      background-color: inherit;
+      width: 90%;
+      margin-bottom: 15px;
+    }
+    .timeline-item::after {
+      content: '';
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      left: 9px;
+      background-color: white;
+      border: 4px solid #4a6fa5;
+      top: 15px;
+      border-radius: 50%;
+      z-index: 1;
+    }
+    .timeline-item.active::after {
+      background-color: #4CAF50;
+      border: 4px solid #fff;
+    }
+    .timeline-item.future::after {
+      background-color: #ddd;
+      border: 4px solid #f8f9fa;
+    }
+    .timeline-content {
+      padding: 15px;
+      background-color: white;
+      position: relative;
+      border-radius: 6px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    .active .timeline-content {
+      border-left: 4px solid #4CAF50;
+    }
+    .future .timeline-content {
+      border-left: 4px solid #ddd;
+      color: #888;
+    }
+    .hidden {
+      display: none;
+    }
+    .error {
+      color: #e74c3c;
+      background-color: #fde8e6;
+      padding: 10px;
+      border-radius: 4px;
+      margin-top: 10px;
+      border-left: 4px solid #e74c3c;
+    }
+    .day-count {
+      font-weight: 600;
+      color: #4a6fa5;
+    }
+    footer {
+      text-align: center;
+      margin-top: 30px;
+      padding: 20px 0;
+      color: #666;
+      font-size: 14px;
+    }
+    @media screen and (max-width: 600px) {
+      .container {
+        padding: 10px;
+      }
+      .tracking-timeline::after {
+        left: 15px;
+      }
+      .timeline-item {
+        padding: 10px 30px;
+      }
+      .timeline-item::after {
+        left: 6px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Suivi de Commande</h1>
+      <p>Suivez facilement l'état de votre livraison</p>
+    </header>
+
+    <div class="tracking-form">
+      <h2>Entrez votre numéro de commande</h2>
+      <div class="form-group">
+        <label for="trackingNumber">Numéro de suivi</label>
+        <input type="text" id="trackingNumber" placeholder="Exemple: ABC12345">
+      </div>
+      <button onclick="trackPackage()">Suivre ma commande</button>
+      <div id="errorMessage" class="error hidden"></div>
+    </div>
+
+    <div id="trackingResults" class="tracking-results">
+      <h2>Statut de votre commande</h2>
+      <div id="trackingStatus" class="tracking-status"></div>
+      <h3>Progression de votre livraison</h3>
+      <div id="trackingTimeline" class="tracking-timeline"></div>
+    </div>
+
+    <footer>
+      <p>© 2025 - Service de suivi des commandes</p>
+    </footer>
+  </div>
+
+  <script>
+    // Définition des statuts par jour
+    const statusesByDay = [
+      { day: 0, emoji: "🟢", status: "Commande confirmée – traitement en cours" },
+      { day: 1, emoji: "🏷️", status: "Étiquette d'expédition créée – votre colis est prêt à partir" },
+      { day: 3, emoji: "📦", status: "Colis pris en charge par le centre logistique" },
+      { day: 5, emoji: "🚚", status: "Colis en transit – départ de notre entrepôt" },
+      { day: 7, emoji: "🔁", status: "Arrivée au centre de tri régional" },
+      { day: 9, emoji: "🕓", status: "En attente de validation douanière" },
+      { day: 11, emoji: "📍", status: "Colis libéré – réintégration dans le circuit de distribution" },
+      { day: 13, emoji: "🚚", status: "Reprise du transport vers votre zone géographique" },
+      { day: 15, emoji: "🏙️", status: "Colis scanné dans la région Île-de-France" },
+      { day: 16, emoji: "⏳", status: "Mise en file pour distribution locale" },
+      { day: 17, emoji: "🧾", status: "Notification de livraison anticipée générée" },
+      { day: 18, emoji: "📦", status: "Colis stocké au dépôt relais régional" },
+      { day: 19, emoji: "📅", status: "Préparation de la tournée de livraison" },
+      { day: 20, emoji: "📬", status: "En attente de remise au livreur" },
+      { day: 21, emoji: "🛵", status: "Colis confié à notre partenaire local pour la livraison finale" },
+      { day: 22, emoji: "📍", status: "Colis localisé à proximité de votre adresse" },
+      { day: 23, emoji: "📫", status: "Tournée de livraison en cours" },
+      { day: 24, emoji: "📦", status: "Livraison en cours – votre colis arrive aujourd'hui" },
+      { day: 25, emoji: "✅", status: "Colis livré – Merci pour votre commande!" }
+    ];
+
+    // Fonction pour récupérer les paramètres de l'URL
+    function getUrlParams() {
+      const params = new URLSearchParams(window.location.search);
+      return {
+        numero: params.get('numero'),
+        date: params.get('date')
+      };
+    }
+
+    // Fonction pour calculer le nombre de jours entre deux dates
+    function daysBetween(startDate, endDate) {
+      const oneDay = 24 * 60 * 60 * 1000; // Millisecondes dans un jour
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      // Correction pour éviter les problèmes de fuseaux horaires
+      start.setHours(0, 0, 0, 0);
+      end.setHours(0, 0, 0, 0);
+      return Math.round((end - start) / oneDay);
+    }
+
+    // Fonction pour obtenir le statut en fonction du jour
+    function getStatusForDay(daysPassed) {
+      // Trouver le dernier statut applicable
+      let currentStatus = statusesByDay[0]; // Statut par défaut (jour 0)
+      
+      for (const status of statusesByDay) {
+        if (status.day <= daysPassed) {
+          currentStatus = status;
+        } else {
+          break;
+        }
+      }
+      
+      return currentStatus;
+    }
+
+    // Fonction pour générer la timeline des statuts
+    function generateTimeline(daysPassed) {
+      const timeline = document.getElementById('trackingTimeline');
+      timeline.innerHTML = '';
+      
+      statusesByDay.forEach(status => {
+        // Créer un item de timeline
+        const timelineItem = document.createElement('div');
+        timelineItem.className = 'timeline-item';
+        
+        // Déterminer la classe (passé, présent ou futur)
+        if (status.day === getStatusForDay(daysPassed).day) {
+          timelineItem.classList.add('active');
+        } else if (status.day > daysPassed) {
+          timelineItem.classList.add('future');
+        }
+        
+        // Créer le contenu
+        const timelineContent = document.createElement('div');
+        timelineContent.className = 'timeline-content';
+        
+        const day = document.createElement('p');
+        day.className = 'day-count';
+        day.textContent = `Jour ${status.day}`;
+        
+        const statusText = document.createElement('h3');
+        statusText.textContent = `${status.emoji} ${status.status}`;
+        
+        // Assembler le tout
+        timelineContent.appendChild(day);
+        timelineContent.appendChild(statusText);
+        timelineItem.appendChild(timelineContent);
+        timeline.appendChild(timelineItem);
+      });
+    }
+
+    // Fonction pour suivre le colis
+    function trackPackage() {
+      const trackingNumber = document.getElementById('trackingNumber').value.trim();
+      const errorMessage = document.getElementById('errorMessage');
+      const trackingResults = document.getElementById('trackingResults');
+      
+      // Vérifier si le numéro de suivi est fourni
+      if (!trackingNumber) {
+        errorMessage.textContent = "Veuillez entrer un numéro de suivi.";
+        errorMessage.classList.remove('hidden');
+        trackingResults.style.display = 'none';
+        return;
+      }
+      
+      // Récupérer les paramètres de l'URL
+      const params = getUrlParams();
+      
+      // Utiliser la date de l'URL ou la date actuelle
+      const startDate = params.date || new Date().toISOString().split('T')[0];
+      const today = new Date().toISOString().split('T')[0];
+      
+      // Calculer le nombre de jours écoulés
+      const daysPassed = daysBetween(startDate, today);
+      
+      // Obtenir le statut actuel
+      const currentStatus = getStatusForDay(daysPassed);
+      
+      // Mettre à jour l'affichage
+      document.getElementById('trackingStatus').innerHTML = 
+        `<strong>${currentStatus.emoji} ${currentStatus.status}</strong><br>` +
+        `<span style="font-size: 14px;">Numéro de suivi: ${trackingNumber} • Jours écoulés: ${daysPassed}</span>`;
+      
+      // Générer la timeline
+      generateTimeline(daysPassed);
+      
+      // Afficher les résultats
+      errorMessage.classList.add('hidden');
+      trackingResults.style.display = 'block';
+    }
+
+    // Vérifier si l'URL contient déjà un numéro de suivi
+    document.addEventListener('DOMContentLoaded', function() {
+      const params = getUrlParams();
+      if (params.numero) {
+        document.getElementById('trackingNumber').value = params.numero;
+        trackPackage();
+      }
+    });
+  </script>
+</body>
+</html>
